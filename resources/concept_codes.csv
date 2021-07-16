@@ -1,0 +1,23 @@
+concept_code,codesystem,description
+dams,source,DAMS database
+100k_ca,group,100k Cancer participant group
+100k,programme,100k programme
+99,reported_ethnicity_code,Not Known
+X,reported_ethnicity_code,Not Known
+A,reported_ethnicity_code,White: British
+B,reported_ethnicity_code,White: Irish
+C,reported_ethnicity_code,White: Any other White background
+D,reported_ethnicity_code,Mixed: White and Black Caribbean
+E,reported_ethnicity_code,Mixed: White and Black African
+F,reported_ethnicity_code,Mixed: White and Asian
+G,reported_ethnicity_code,Mixed: Any other mixed background
+H,reported_ethnicity_code,Asian or Asian British: Indian
+J,reported_ethnicity_code,Asian or Asian British: Pakistani
+K,reported_ethnicity_code,Asian or Asian British: Bangladeshi
+L,reported_ethnicity_code,Asian or Asian British: Any other Asian background
+M,reported_ethnicity_code,Black or Black British: Caribbean
+N,reported_ethnicity_code,Black or Black British: African
+P,reported_ethnicity_code,Black or Black British: Any other Black background
+R,reported_ethnicity_code,Other Ethnic Groups: Chinese
+S,reported_ethnicity_code,Other Ethnic Groups: Any other ethnic group
+Z,reported_ethnicity_code,Not Stated

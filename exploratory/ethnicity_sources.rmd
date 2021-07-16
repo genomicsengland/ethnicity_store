@@ -1,0 +1,215 @@
+---
+title: "Reported Ethnicity and Predicted Ancestry"
+author: "Simon Thompson"
+output:
+   html_document
+---
+
+```{r setup, include = FALSE}
+
+rm(list = objects())
+options(stringsAsFactors = FALSE,
+    scipen = 200)
+library(knitr)
+library(wrangleR)
+library(tidyverse)
+library(DBI)
+p <- getprofile(c("indx_con", "dams_con"))
+indx_con <- dbConnect(RPostgres::Postgres(),
+             dbname = "secondary_data_clean",
+             host     = p$indx_con$host,
+             port     = p$indx_con$port,
+             user     = p$indx_con$user,
+             password = p$indx_con$password)
+dams_con <- dbConnect(RPostgres::Postgres(),
+             dbname = "labkey",
+             host     = p$dams_con$host,
+             port     = p$dams_con$port,
+             user     = p$dams_con$user,
+             password = p$dams_con$password)
+
+dt_ethnicity <- read.csv("dt_ethnicity.csv")
+
+dams_d <- dbGetQuery(dams_con, "
+select r.participant_identifiers_id as participant_id
+    ,r.ethnicity_id
+    ,ev.event_date::date as source_date
+    ,'DAMS_CA' as source
+from gelcancer.cancer_registration r
+join gelcancer.event_detail ev 
+    on r.event_details_id = ev.id
+union
+select r.participant_identifiers_id as participant_id
+    ,r.ethnicity_id
+    ,msg.metadata_date::date as source_date
+    ,'DAMS_RD' as source
+from rarediseases.rare_diseases_registration r
+join rarediseases.rare_diseases_subject s 
+    on r.subject_id = s.id 
+join rarediseases.rare_diseases_message msg 
+    on s.message_id = msg.id
+;
+") 
+
+op_d <- dbGetQuery(indx_con, "
+select participant_id
+    ,ethnos as ethnicity_id
+    ,apptdate::date as source_date
+    ,'HES_OP' as source
+from q4_19_nhsd.op
+;") 
+
+ae_d <- dbGetQuery(indx_con, "
+select participant_id
+    ,ethnos as ethnicity_id
+    ,arrivaldate::date as source_date
+    ,'HES_AE' as source
+from q4_19_nhsd.ae
+;")
+
+apc_d <- dbGetQuery(indx_con, "
+select participant_id
+    ,ethnos as ethnicity_id
+    ,admidate::date as source_date
+    ,'HES_APC' as programme
+from q4_19_nhsd.apc
+where ethnos not in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+;")
+
+d <- bind_rows(dams_d, op_d, ae_d, apc_d)
+d <- merge(d, dt_ethnicity, by = "ethnicity_id", all.x = TRUE)
+
+pa <- read.csv("/Users/simonthompson/Downloads/aggregate_gvcf_sample_stats.tsv",
+    sep = "\t")
+pa <- dropnrename(pa,
+    c("participant_id",
+    "pred_african_ancestries",
+    "pred_south_asian_ancestries",
+    "pred_east_asian_ancestries",
+    "pred_european_ancestries",
+    "pred_american_ancestries"),
+    c("participant_id",
+    "african",
+    "south_asian",
+    "east_asian",
+    "european",
+    "american"))
+pa <- gather(pa, ancestry, prop, c("african", "south_asian", "east_asian", "european", "american"))
+
+pretty_tab <- function(x) {
+    as.data.frame(sort(table(x, useNA = "always"), decreasing = T))
+}
+
+pretty_prop_tab <- function(x) {
+    as.data.frame(sort(prop.table(table(x, useNA = "always")), decreasing = T))
+}
+
+```
+
+# Reported Ethnicity and Predicted Ancestry
+
+Data used is reported ethnicity from DAMS and HES (OP, APC, AE).
+Only those records using the new categories are included (70k records in APC are exclude).
+The categories (and supercategories) used are:
+
+```{r dt_ethnicity}
+
+dt_ethnicity
+
+```
+
+
+## Overall counts of ethnicity categories
+
+Below are the overall counts of different ethnicities and supercategories across all sources.
+
+```{r overall_counts}
+pretty_tab(d$ethnicity_label)
+pretty_tab(d$ethnicity_supercat)
+```
+
+## Overall proportions of ethnicity categories
+
+Below are the proportion of different ethnicities and supercategories across all sources.
+
+```{r overall_prop}
+pretty_prop_tab(d$ethnicity_label)
+pretty_prop_tab(d$ethnicity_supercat)
+```
+
+## Number of different ethnicities per participant
+
+The below plots show histograms of the number of different records per participant,
+the number of different ethnicities pressent in those records (with and without the inclusion of Not Known/Not Stated).
+
+```{r n_different_ethnicities}
+n_eth <- d %>% 
+    group_by(participant_id) %>%
+    summarise(n_records = n(),
+        count_exclude_not_known = n_distinct(ethnicity_id[!is.na(ethnicity_supercat)]),
+        count_include_not_known = n_distinct(ethnicity_id)
+    )
+
+ggplot(n_eth, aes(x = n_records)) +
+    geom_histogram(binwidth = 100) +
+    labs(title = "Number of ethnicity records")
+ggplot(n_eth, aes(x = count_include_not_known)) +
+    geom_histogram(binwidth=1) +
+    scale_x_continuous(breaks = c(0,2,4,8)) +
+    labs(title = "Number of different ethnicities recorded per participant")
+ggplot(n_eth, aes(x = count_exclude_not_known)) +
+    geom_histogram(binwidth=1) +
+    scale_x_continuous(breaks = c(0,2,4,8)) +
+    labs(title = "Number of different ethnicities recorded per participant, excluding Not Known/Not Stated")
+
+```
+
+## Mode ethnicity per participant
+
+Below are the counts of model ethnicity and supercategory across all participants.
+Where there is a tie for a participant 'Unclear' is given.
+
+```{r ethnicity_mode}
+
+mode <- function(x) {
+    t <- sort(table(x), decreasing = T)
+    if (is.na(t[1])) {
+        return(as.character(NA))
+    } else if (length(t) == 1 | t[1] != t[2]) {
+        return(names(t)[1])
+    } else {
+        return("Unclear")
+    }
+}
+
+mode_eth <- d %>%
+    group_by(participant_id) %>%
+    summarise(mode = mode(ethnicity_label))
+
+pretty_tab(mode_eth$mode)
+
+```
+
+```{r supercat_mode}
+
+mode_supercat <- d %>%
+    group_by(participant_id) %>%
+    summarise(mode = mode(ethnicity_supercat))
+
+pretty_tab(mode_supercat$mode)
+
+```
+
+## Distribution of predicted ancestry proportions
+
+Below is a histogram of the calculated proportions of ancestry populations across all
+participants. Only non-zero values have been plotted.
+
+```{r predicted_ancestry_prop_dist}
+
+ggplot(pa[pa$prop > 0,], aes(x = prop)) +
+    geom_histogram(bins = 100) + 
+    facet_grid(ancestry ~ .) + 
+    labs(title = "Distribution of non-zero predicted ancestry proportions")
+
+```
