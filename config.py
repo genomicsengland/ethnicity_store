@@ -31,6 +31,13 @@ class Config:
         self._dams_db_user = os.getenv('DAMS_DB_USER')
         self._dams_db_password = os.getenv('DAMS_DB_PASSWORD')
 
+        # dams db connection configuration
+        self._hes_db_name = os.getenv('HES_DB_NAME')
+        self._hes_db_host = os.getenv('HES_DB_HOST')
+        self._hes_db_port = os.getenv('HES_DB_PORT') or 5432  # how we can set defaults
+        self._hes_db_user = os.getenv('HES_DB_USER')
+        self._hes_db_password = os.getenv('HES_DB_PASSWORD')
+
         # log config
         self.log_folder = os.getenv('LOG_FOLDER') or \
             os.path.join(basedir, 'logs')
@@ -50,6 +57,14 @@ class Config:
         return (f'postgresql+psycopg2://{self._dams_db_user}:'
             f'{self._dams_db_password}@{self._dams_db_host}:'
             f'{self._dams_db_port}/{self._dams_db_name}')
+
+    @property
+    def hes_db_conn_str(self):
+
+        return (f'postgresql+psycopg2://{self._hes_db_user}:'
+            f'{self._hes_db_password}@{self._hes_db_host}:'
+            f'{self._hes_db_port}/{self._hes_db_name}')
+
     def __repr__(self):
 
         return f'config: {self.environment}'

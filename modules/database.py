@@ -11,8 +11,10 @@ from classes import diversity_db
 
 LOGGER = logging.getLogger(__name__)
 
-DIVERSITY_DB_CREATION_SCRIPT_FP = \
-    os.path.abspath('resources/sql_scripts/ethnicity_store.sql')
+DIVERSITY_DB_CREATION_SCRIPT_FP = [
+    os.path.abspath('resources/sql_scripts/ethnicity_store.sql'),
+    os.path.abspath('resources/sql_scripts/vw_participant_ethnicity.sql'),
+]
 
 
 def assemble_binds(config):
@@ -93,7 +95,8 @@ def create_diversity_db(c):
 
     e = get_engine(c.div_db_conn_str)
 
-    run_sql_file(e, DIVERSITY_DB_CREATION_SCRIPT_FP)
+    for q in DIVERSITY_DB_CREATION_SCRIPT_FP:
+        run_sql_file(e, q)
 
 
 def drop_diversity_db(c):
