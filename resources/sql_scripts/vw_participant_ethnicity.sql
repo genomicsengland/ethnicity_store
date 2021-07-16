@@ -8,7 +8,7 @@ The approach is:
 2. If there are multiple ethnicities in the data sets with the same frequency, the most recent is chosen.
 3. If there are multiple ethnicities with the same frequency and latest date, precedence is given to the most recent value from the APC data set as it is considered more robust, followed by the AE data set, followed by the OP data set, followed by 100k dataset. Checks completed by NHS Digital indicate completeness in the AE data set is better than the OP data set.
 4. If there are multiple ethnicities with the same frequency, latest date and source of data we select the ethnicity that occurs more frequently in the general population of England and Wales, according to the 2011 Census.
-5. A value of ethnicity unknown will only be present if there are no known ethnicities in any of the HES data sets.
+5. A value of ethnicity unknown will only be present if there are no known ethnicities in any of the data sets.
 6. To take into the account the overrepresentation ofthe Other ethnic group, if the most common ethnic group assigned by the method above is Other:
   * The second most common usable ethnic group is assigned instead
   * If there are no other usable ethnic groups, the person is assigned to the Other ethnic group. A person will only be assigned to the Other ethnic group if there are no other usable ethnic groups
